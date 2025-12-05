@@ -1,0 +1,12 @@
+apiVersion: v2
+name: unittest-chart
+description: A dummy chart for testing library functionality
+type: application
+version: 0.0.0-test
+dependencies:
+  - name: oauth2-proxy-rbac
+    version: 0.1.0
+    repository: file://..
+    import-values:
+      - oauth2Proxy
+      - traefik

@@ -1,0 +1,33 @@
+exports:
+  oauth2Proxy:
+    oauth2ProxyDefaults:
+      proxyServiceName: oauth2-proxy
+      proxyPort: 80
+      proxyScheme: "http"
+      proxyNamespace: ""
+  traefik:
+    ingressRouteDefaults:
+      # proxy: (injected)
+      middlewarePrefix: "oa2p"
+      routeOAuth2Prefix: true
+      errorMiddleware:
+        enabled: true
+        create: true
+        inProxyNamespace: false
+        settings:
+          status:
+            - "401"
+          query: "/oauth2/sign_in?rd={url}"
+          # 'service' defaults to the oauth2 proxy
+      authHeaderMiddleware:
+        enabled: true
+        create: true
+        inProxyNamespace: false
+        headers:
+          stsSeconds: 315360000
+          browserXssFilter: true
+          contentTypeNosniff: true
+          forceSTSHeader: true
+          stsIncludeSubdomains: true
+          stsPreload: true
+          frameDeny: true

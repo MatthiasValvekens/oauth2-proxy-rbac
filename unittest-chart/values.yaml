@@ -1,0 +1,11 @@
+authIngress:
+  tls:
+    secretName: zz
+  hosts:
+    - host: example.com
+      defaultAllowedRoles:
+        - Foo
+        - Bar
+      defaultBackends:
+        - name: backend
+          port: 80

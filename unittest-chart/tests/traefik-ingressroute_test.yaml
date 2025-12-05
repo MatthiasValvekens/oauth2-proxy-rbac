@@ -1,0 +1,31 @@
+suite: traefik IngressRoute RBAC
+templates:
+  - ingressroute.yaml
+release:
+  name: traefik-rbac
+
+tests:
+  - it: should render a default host-wide route
+    asserts:
+      - isKind:
+          of: IngressRoute
+      - equal:
+          path: spec.routes[0].match
+          value: "Host(`example.com`)"
+      - lengthEqual:
+          path: spec.routes[0].middlewares
+          count: 2
+      - matchRegex:
+          path: spec.routes[0].middlewares[0].name
+          pattern: "oa2p-[0-9a-f]+-errors"
+  - it: should render an /oauth2/ route
+    asserts:
+      - equal:
+          path: spec.routes[1].match
+          value: "Host(`example.com`) && PathPrefix(`/oauth2/`)"
+      - lengthEqual:
+          path: spec.routes[1].middlewares
+          count: 1
+      - matchRegex:
+          path: spec.routes[1].middlewares[0].name
+          pattern: "oa2p-[0-9a-f]+-auth-headers"

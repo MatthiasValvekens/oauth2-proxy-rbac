@@ -1,0 +1,5 @@
+apiVersion: v2
+name: oauth2-proxy-rbac
+description: A utility chart for defining authenticated ingress routing with oauth2-proxy
+type: library
+version: 0.1.0
