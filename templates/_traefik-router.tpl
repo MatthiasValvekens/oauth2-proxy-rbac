@@ -24,17 +24,17 @@
   services:
     {{- toYaml .backends | nindent 4 }}
   middlewares:
-    {{- if .ingressRouteGlobals.errorMiddleware.enabled }}
+    {{- if .traefikSettings.errorMiddleware.enabled }}
     - name: {{ include "oauth2-proxy-rbac.traefikErrorsMiddlewareName" . }}
-      {{- if .ingressRouteGlobals.errorMiddleware.inProxyNamespace }}
-      namespace: {{ .ingressRouteGlobals.proxy.proxyNamespace }}
+      {{- if .traefikSettings.errorMiddleware.inProxyNamespace }}
+      namespace: {{ .traefikSettings.proxy.proxyNamespace }}
       {{- end }}
     {{- end }}
     - name: {{ include "oauth2-proxy-rbac.traefikAuthFwdMiddlewareName" . }}
 {{- end }}
 
 {{- define "oauth2-proxy-rbac.traefikAuthenticatedRoutes" }}
-{{ $global := dict "router" . "ingressRouteGlobals" .ingressRouteGlobals "allowedRoles" .defaultAllowedRoles "backends" .defaultBackends }}
+{{ $global := dict "router" . "traefikSettings" .traefikSettings "allowedRoles" .defaultAllowedRoles "backends" .defaultBackends }}
 {{- if .routes }}
     {{- range $route := .routes }}
         {{ $augRoute := merge $route $global }}
@@ -46,20 +46,20 @@
     */}}
     {{ include "oauth2-proxy-rbac.traefikAuthenticatedRoute" $global }}
 {{- end }}
-{{- if .ingressRouteGlobals.routeOAuth2Prefix }}
+{{- if .traefikSettings.routeOAuth2Prefix }}
 - match: {{ printf "Host(`%s`)" .host }} && PathPrefix(`/oauth2/`)
   middlewares:
-    {{- if .ingressRouteGlobals.authHeaderMiddleware.enabled }}
+    {{- if .traefikSettings.authHeaderMiddleware.enabled }}
     - name: {{ include "oauth2-proxy-rbac.traefikAuthHeadersMiddlewareName" . }}
-      {{- if .ingressRouteGlobals.authHeaderMiddleware.inProxyNamespace }}
-      namespace: {{ .ingressRouteGlobals.proxy.proxyNamespace }}
+      {{- if .traefikSettings.authHeaderMiddleware.inProxyNamespace }}
+      namespace: {{ .traefikSettings.proxy.proxyNamespace }}
       {{- end }}
     {{- end }}
   services:
-    - name: {{ .ingressRouteGlobals.proxy.proxyServiceName }}
-      port: {{ .ingressRouteGlobals.proxy.proxyPort }}
-      {{- if .ingressRouteGlobals.proxy.proxyNamespace }}
-      namespace: {{ .ingressRouteGlobals.proxy.proxyNamespace }}
+    - name: {{ .traefikSettings.proxy.proxyServiceName }}
+      port: {{ .traefikSettings.proxy.proxyPort }}
+      {{- if .traefikSettings.proxy.proxyNamespace }}
+      namespace: {{ .traefikSettings.proxy.proxyNamespace }}
       {{- end }}
 {{- end }}
 {{- end -}}
@@ -79,7 +79,7 @@ entryPoints:
 tls:
   {{ toYaml .tls | nindent 2 }}
 routes:
-  {{ $global := dict "ingressRouteGlobals" .ingressRouteGlobals }}
+  {{ $global := dict "traefikSettings" .traefikSettings }}
   {{ range $host := .hosts }}
       {{ merge $host $global | include "oauth2-proxy-rbac.traefikAuthenticatedRoutes" | nindent 2 }}
   {{ end }}
@@ -98,6 +98,6 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  {{ $global := merge .Values.ingressRouteDefaults (dict "proxy" .Values.oauth2ProxyDefaults) }}
-  {{ merge .Values.authIngress (dict "ingressRouteGlobals" $global) | include "oauth2-proxy-rbac.traefikAuthIngressRouteSpec" | trim | nindent 2 }}
+  {{ $global := merge .Values.authIngress.traefikSettings (dict "proxy" .Values.oauth2Proxy) }}
+  {{ mergeOverwrite .Values.authIngress (dict "traefikSettings" $global) | include "oauth2-proxy-rbac.traefikAuthIngressRouteSpec" | trim | nindent 2 }}
 {{- end }}

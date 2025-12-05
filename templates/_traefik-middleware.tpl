@@ -1,5 +1,5 @@
 {{- define "oauth2-proxy-rbac.traefikMiddlewarePrefix" -}}
-{{ .ingressRouteGlobals.middlewarePrefix }}-{{ include "oauth2-proxy-rbac.proxyUrlSlug" .ingressRouteGlobals.proxy }}
+{{ .traefikSettings.middlewarePrefix }}-{{ include "oauth2-proxy-rbac.proxyUrlSlug" .traefikSettings.proxy }}
 {{- end -}}
 
 {{- define "oauth2-proxy-rbac.traefikAuthFwdMiddlewareName" -}}

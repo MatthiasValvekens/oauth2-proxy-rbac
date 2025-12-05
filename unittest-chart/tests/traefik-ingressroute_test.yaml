@@ -29,3 +29,13 @@ tests:
       - matchRegex:
           path: spec.routes[1].middlewares[0].name
           pattern: "oa2p-[0-9a-f]+-auth-headers"
+  - it: should not render an /oauth2/ route if disabled
+    set:
+      authIngress.traefikSettings.routeOAuth2Prefix: false
+    asserts:
+      - lengthEqual:
+          path: spec.routes
+          count: 1
+      - equal:
+          path: spec.routes[0].match
+          value: "Host(`example.com`)"

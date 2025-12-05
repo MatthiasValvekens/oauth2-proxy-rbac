@@ -8,5 +8,5 @@ dependencies:
     version: 0.1.0
     repository: file://..
     import-values:
-      - oauth2Proxy
-      - traefik
+      - oauth2ProxyDefaults
+      - traefikDefaults
