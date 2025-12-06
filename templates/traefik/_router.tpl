@@ -15,7 +15,7 @@
 {{- without (list $host $prefix $method $headers) "" | join " && " -}}
 {{- end -}}
 
-{{- define "oauth2-proxy-rbac.traefikAuthenticatedRoute" }}
+{{- define "oauth2-proxy-rbac.traefikAuthenticatedRoute" -}}
 - kind: Rule
   match: {{ include "oauth2-proxy-rbac.traefikAuthRouteMatch" . }}
   {{- if .priority }}
@@ -26,33 +26,33 @@
   middlewares:
     {{- if .traefikSettings.errorMiddleware.enabled }}
     - name: {{ include "oauth2-proxy-rbac.traefikErrorsMiddlewareName" .traefikSettings }}
-      {{- if .traefikSettings.errorMiddleware.inProxyNamespace }}
-      namespace: {{ .traefikSettings.proxy.proxyNamespace }}
+      {{- if .traefikSettings.errorMiddleware.namespace }}
+      namespace: {{ .traefikSettings.errorMiddleware.namespace }}
       {{- end }}
     {{- end }}
     - name: {{ include "oauth2-proxy-rbac.traefikAuthFwdMiddlewareName" . }}
 {{- end }}
 
-{{- define "oauth2-proxy-rbac.traefikAuthenticatedRoutes" }}
-{{ $global := dict "router" . "traefikSettings" .traefikSettings "allowedRoles" .defaultAllowedRoles "backends" .defaultBackends }}
+{{- define "oauth2-proxy-rbac.traefikAuthenticatedRoutes" -}}
+{{- $global := dict "router" . "traefikSettings" .traefikSettings "allowedRoles" .defaultAllowedRoles "backends" .defaultBackends }}
 {{- if .routes }}
     {{- range $route := .routes }}
-        {{ $augRoute := merge $route $global }}
-        {{ include "oauth2-proxy-rbac.traefikAuthenticatedRoute" $augRoute }}
+        {{- $augRoute := merge $route $global }}
+        {{- include "oauth2-proxy-rbac.traefikAuthenticatedRoute" $augRoute }}
     {{- end }}
 {{- else }}
     {{- /*
     Emit a route that matches all traffic for the host
     */}}
-    {{ include "oauth2-proxy-rbac.traefikAuthenticatedRoute" $global }}
+    {{- include "oauth2-proxy-rbac.traefikAuthenticatedRoute" $global }}
 {{- end }}
 {{- if .traefikSettings.routeOAuth2Prefix }}
 - match: {{ printf "Host(`%s`)" .host }} && PathPrefix(`/oauth2/`)
   middlewares:
     {{- if .traefikSettings.authHeaderMiddleware.enabled }}
     - name: {{ include "oauth2-proxy-rbac.traefikAuthHeadersMiddlewareName" .traefikSettings }}
-      {{- if .traefikSettings.authHeaderMiddleware.inProxyNamespace }}
-      namespace: {{ .traefikSettings.proxy.proxyNamespace }}
+      {{- if .traefikSettings.authHeaderMiddleware.namespace }}
+      namespace: {{ .traefikSettings.authHeaderMiddleware.namespace }}
       {{- end }}
     {{- end }}
   services:

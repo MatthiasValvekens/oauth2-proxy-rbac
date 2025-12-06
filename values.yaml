@@ -13,10 +13,12 @@ exports:
         routeOAuth2Prefix: true
         authFwdMiddleware:
           create: true
+          extraSettings: {}
         errorMiddleware:
           enabled: true
           create: true
-          inProxyNamespace: false
+          name: ""
+          namespace: ""
           settings:
             status:
               - "401"
@@ -25,7 +27,8 @@ exports:
         authHeaderMiddleware:
           enabled: true
           create: true
-          inProxyNamespace: false
+          name: ""
+          namespace: ""
           headers:
             stsSeconds: 315360000
             browserXssFilter: true

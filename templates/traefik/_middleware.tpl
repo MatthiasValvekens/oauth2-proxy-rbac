@@ -18,13 +18,21 @@ oa2p
 {{- end -}}
 
 {{- define "oauth2-proxy-rbac.traefikErrorsMiddlewareName" -}}
+{{- if .errorMiddleware.name }}
+{{- .errorMiddleware.name }}
+{{- else }}
 {{- $args := dict "proxy" .proxy "create" .errorMiddleware.create "fullname" .fullname }}
 {{- include "oauth2-proxy-rbac.traefikMiddlewarePrefix" $args }}-errors
 {{- end -}}
+{{- end -}}
 
 {{- define "oauth2-proxy-rbac.traefikAuthHeadersMiddlewareName" -}}
-{{- $args := dict "proxy" .proxy "create" .authHeaderMiddleware.create "fullname" .fullname }}
+{{- if .authHeaderMiddleware.name }}
+{{- .authHeaderMiddleware.name }}
+{{- else }}
+{{- $args := dict "proxy" .proxy "create" .errorMiddleware.create "fullname" .fullname }}
 {{- include "oauth2-proxy-rbac.traefikMiddlewarePrefix" $args }}-auth-headers
+{{- end -}}
 {{- end -}}
 
 {{- define "oauth2-proxy-rbac.traefikOAuth2ProxyService" -}}
@@ -44,7 +52,9 @@ spec:
   forwardAuth:
     {{- $args := dict "proxy" .traefikSettings.proxy "allowedRoles" .allowedRoles }}
     address: {{ include "oauth2-proxy-rbac.authForwardWithGroupsUrl" $args }}
-    trustForwardHeader: true
+    {{- with .traefikSettings.authFwdMiddleware.extraSettings}}
+    {{ toYaml . | nindent 4 }}
+    {{- end }}
 {{- end }}
 
 {{- define "oauth2-proxy-rbac.traefikErrorsMiddlewareRender" }}
@@ -52,8 +62,8 @@ apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
   name: {{ include "oauth2-proxy-rbac.traefikErrorsMiddlewareName" . }}
-  {{- if .authHeaderMiddleware.inProxyNamespace }}
-  namespace: {{ .proxy.proxyNamespace }}
+  {{- if .authHeaderMiddleware.namespace }}
+  namespace: {{ .authHeaderMiddleware.namespace }}
   {{- end }}
 spec:
   errors:
@@ -69,8 +79,8 @@ apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
   name: {{ include "oauth2-proxy-rbac.traefikAuthHeadersMiddlewareName" . }}
-  {{- if .authHeaderMiddleware.inProxyNamespace }}
-  namespace: {{ .proxy.proxyNamespace }}
+  {{- if .authHeaderMiddleware.namespace }}
+  namespace: {{ .authHeaderMiddleware.namespace }}
   {{- end }}
 spec:
   headers:
@@ -124,4 +134,20 @@ spec:
 {{ $name := include "oauth2-proxy-rbac.fullname" . }}
 {{ $global := merge .Values.authIngress.traefikSettings (dict "proxy" .Values.oauth2Proxy "fullname" $name) }}
 {{ mergeOverwrite .Values.authIngress (dict "traefikSettings" $global) | include "oauth2-proxy-rbac.traefikMiddlewaresForRoutes" | trim }}
+{{- end }}
+
+{{- define "oauth2-proxy-rbac.traefikAllMiddlewares" }}
+{{- $settings := .Values.authIngress.traefikSettings }}
+{{- if and $settings.errorMiddleware.create $settings.errorMiddleware.enabled }}
+{{- include "oauth2-proxy-rbac.traefikErrorsMiddleware" . }}
+---
+{{- end }}
+{{- if and $settings.authHeaderMiddleware.create $settings.authHeaderMiddleware.enabled }}
+{{- include "oauth2-proxy-rbac.traefikAuthHeadersMiddleware" . }}
+---
+{{- end }}
+{{- if and $settings.authFwdMiddleware.create }}
+{{- include "oauth2-proxy-rbac.traefikAllAuthFwdMiddlewares" . }}
+---
+{{- end }}
 {{- end }}
