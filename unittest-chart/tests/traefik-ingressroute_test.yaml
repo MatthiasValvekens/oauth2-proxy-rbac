@@ -40,3 +40,14 @@ tests:
       - equal:
           path: spec.routes[0].match
           value: "Host(`example.com`)"
+  - it: should fail if there are no roles on a route and no host-level default
+    set:
+      authIngress:
+        hosts:
+          - host: example.com
+            defaultBackends:
+              - name: backend
+                port: 80
+    asserts:
+      - failedTemplate:
+          errorPattern: "empty role list.*"

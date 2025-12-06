@@ -96,7 +96,7 @@ spec:
       {{- end }}
     {{- end }}
   {{- end }}
-  {{- range $k := keys $todo | uniq }}
+  {{- range $k := keys $todo | uniq | sortAlpha }}
     {{- get $todo $k }}
     {{- print "\n---" }}
   {{- end }}

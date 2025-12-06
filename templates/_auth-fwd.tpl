@@ -10,7 +10,7 @@ https://{{ .proxyServiceName }}{{ $nsSuffix }}
 {{- end }}
 
 {{- define "oauth2-proxy-rbac.authForwardWithGroupsUrl" -}}
-{{- include "oauth2-proxy-rbac.proxyBaseUrl" .proxy | trim }}/oauth2/auth?allowed_groups={{ join "," .allowedRoles }}
+{{- include "oauth2-proxy-rbac.proxyBaseUrl" .proxy | trim }}/oauth2/auth?allowed_groups={{ .allowedRoles | uniq | sortAlpha | join "," }}
 {{- end -}}
 
 {{- define "oauth2-proxy-rbac.compositeRoleSlug" -}}

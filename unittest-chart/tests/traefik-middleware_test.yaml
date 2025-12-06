@@ -37,4 +37,59 @@ tests:
           pattern: "^rbac-test-[0-9a-f]+-auth-fwd-[0-9a-f]+"
       - equal:
           path: spec.forwardAuth.address
-          value: "http://oauth2-proxy/oauth2/auth?allowed_groups=Foo,Bar"
+          value: "http://oauth2-proxy/oauth2/auth?allowed_groups=Bar,Foo"
+  - it: should render one auth fwd manifest per role combination
+    template: traefik-auth-fwd-middleware.yaml
+    set:
+      authIngress:
+        hosts:
+          - host: example.com
+            defaultAllowedRoles:
+              - Foo
+              - Bar
+            defaultBackends:
+              - name: backend
+                port: 80
+            routes:
+              - prefix: /foo
+                allowedRoles:
+                  - Foo
+              - prefix: /bar
+                allowedRoles:
+                  - Bar
+                  - Foo
+              - prefix: /quux
+                allowedRoles:
+                  - Quux
+              - prefix: /baz
+                allowedRoles:
+                  - Bar
+                  - Foo
+                  - Baz
+              - prefix: /wizz
+                allowedRoles:
+                  - Quux
+    asserts:
+      - isKind:
+          of: Middleware
+      - hasDocuments:
+          count: 4
+      - matchRegex:
+          path: metadata.name
+          pattern: "^rbac-test-[0-9a-f]+-auth-fwd-[0-9a-f]+"
+      - equal:
+          path: spec.forwardAuth.address
+          value: "http://oauth2-proxy/oauth2/auth?allowed_groups=Foo"
+        documentIndex: 0
+      - equal:
+          path: spec.forwardAuth.address
+          value: "http://oauth2-proxy/oauth2/auth?allowed_groups=Bar,Foo"
+        documentIndex: 1
+      - equal:
+          path: spec.forwardAuth.address
+          value: "http://oauth2-proxy/oauth2/auth?allowed_groups=Bar,Baz,Foo"
+        documentIndex: 2
+      - equal:
+          path: spec.forwardAuth.address
+          value: "http://oauth2-proxy/oauth2/auth?allowed_groups=Quux"
+        documentIndex: 3
