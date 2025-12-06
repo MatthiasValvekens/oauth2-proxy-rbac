@@ -15,7 +15,7 @@
 {{- without (list $host $prefix $method $headers) "" | join " && " -}}
 {{- end -}}
 
-{{- define "oauth2-proxy-rbac.traefikAuthenticatedRoute" -}}
+{{- define "oauth2-proxy-rbac.traefikAuthenticatedRoute" }}
 - kind: Rule
   match: {{ include "oauth2-proxy-rbac.traefikAuthRouteMatch" . }}
   {{- if .priority }}
