@@ -1,6 +1,6 @@
 suite: traefik IngressRoute RBAC
 templates:
-  - ingressroute.yaml
+  - traefik/ingressroute.yaml
 
 tests:
   - it: should render a default host-wide route

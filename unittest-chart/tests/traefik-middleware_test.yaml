@@ -1,12 +1,12 @@
 suite: traefik RBAC Middleware
 templates:
-  - traefik-auth-fwd-middleware.yaml
-  - traefik-auth-header-middleware.yaml
-  - traefik-error-middleware.yaml
+  - traefik/auth-fwd-middleware.yaml
+  - traefik/auth-header-middleware.yaml
+  - traefik/error-middleware.yaml
 
 tests:
   - it: should render error middleware with defaults
-    template: traefik-error-middleware.yaml
+    template: traefik/error-middleware.yaml
     asserts:
       - isKind:
           of: Middleware
@@ -17,7 +17,7 @@ tests:
           path: metadata.name
           pattern: "^rbac-test-[0-9a-f]+-errors"
   - it: should render auth header middleware with defaults
-    template: traefik-auth-header-middleware.yaml
+    template: traefik/auth-header-middleware.yaml
     asserts:
       - isKind:
           of: Middleware
@@ -28,7 +28,7 @@ tests:
           path: metadata.name
           pattern: "^rbac-test-[0-9a-f]+-auth-headers"
   - it: should render auth forwarding middleware with defaults
-    template: traefik-auth-fwd-middleware.yaml
+    template: traefik/auth-fwd-middleware.yaml
     asserts:
       - isKind:
           of: Middleware
@@ -39,7 +39,7 @@ tests:
           path: spec.forwardAuth.address
           value: "http://oauth2-proxy/oauth2/auth?allowed_groups=Bar,Foo"
   - it: should render one auth fwd manifest per role combination
-    template: traefik-auth-fwd-middleware.yaml
+    template: traefik/auth-fwd-middleware.yaml
     set:
       authIngress:
         hosts:
