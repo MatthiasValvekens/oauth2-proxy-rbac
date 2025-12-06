@@ -70,15 +70,17 @@
 #         - prefix: ...
 #           method: ...
 {{- define "oauth2-proxy-rbac.traefikAuthIngressRouteSpec" }}
+{{- $name := include "oauth2-proxy-rbac.fullname" . }}
+{{- $traefikSettings := merge .Values.authIngress.traefikSettings (dict "proxy" .Values.oauth2Proxy "fullname" $name) }}
+{{- $global := mergeOverwrite .Values.authIngress (dict "traefikSettings" $traefikSettings) -}}
 entryPoints:
   - websecure
 tls:
-  {{ toYaml .tls | nindent 2 }}
+  {{- toYaml $global.tls | nindent 2 }}
 routes:
-  {{ $global := dict "traefikSettings" .traefikSettings }}
-  {{ range $host := .hosts }}
-      {{ merge $host $global | include "oauth2-proxy-rbac.traefikAuthenticatedRoutes" | nindent 2 }}
-  {{ end }}
+  {{- range $host := $global.hosts }}
+      {{- merge $host $global | include "oauth2-proxy-rbac.traefikAuthenticatedRoutes" | nindent 2 }}
+  {{- end }}
 {{- end }}
 
 
@@ -94,7 +96,5 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  {{ $name := include "oauth2-proxy-rbac.fullname" . }}
-  {{ $global := merge .Values.authIngress.traefikSettings (dict "proxy" .Values.oauth2Proxy "fullname" $name) }}
-  {{ mergeOverwrite .Values.authIngress (dict "traefikSettings" $global) | include "oauth2-proxy-rbac.traefikAuthIngressRouteSpec" | trim | nindent 2 }}
+  {{- include "oauth2-proxy-rbac.traefikAuthIngressRouteSpec" . | nindent 2 }}
 {{- end }}
