@@ -25,7 +25,7 @@
     {{- toYaml .backends | nindent 4 }}
   middlewares:
     {{- if .traefikSettings.errorMiddleware.enabled }}
-    - name: {{ include "oauth2-proxy-rbac.traefikErrorsMiddlewareName" . }}
+    - name: {{ include "oauth2-proxy-rbac.traefikErrorsMiddlewareName" .traefikSettings }}
       {{- if .traefikSettings.errorMiddleware.inProxyNamespace }}
       namespace: {{ .traefikSettings.proxy.proxyNamespace }}
       {{- end }}
@@ -50,17 +50,13 @@
 - match: {{ printf "Host(`%s`)" .host }} && PathPrefix(`/oauth2/`)
   middlewares:
     {{- if .traefikSettings.authHeaderMiddleware.enabled }}
-    - name: {{ include "oauth2-proxy-rbac.traefikAuthHeadersMiddlewareName" . }}
+    - name: {{ include "oauth2-proxy-rbac.traefikAuthHeadersMiddlewareName" .traefikSettings }}
       {{- if .traefikSettings.authHeaderMiddleware.inProxyNamespace }}
       namespace: {{ .traefikSettings.proxy.proxyNamespace }}
       {{- end }}
     {{- end }}
   services:
-    - name: {{ .traefikSettings.proxy.proxyServiceName }}
-      port: {{ .traefikSettings.proxy.proxyPort }}
-      {{- if .traefikSettings.proxy.proxyNamespace }}
-      namespace: {{ .traefikSettings.proxy.proxyNamespace }}
-      {{- end }}
+    {{- include "oauth2-proxy-rbac.traefikOAuth2ProxyService" .traefikSettings.proxy | fromYaml | list | toYaml | nindent 4}}
 {{- end }}
 {{- end -}}
 
@@ -98,6 +94,7 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  {{ $global := merge .Values.authIngress.traefikSettings (dict "proxy" .Values.oauth2Proxy) }}
+  {{ $name := include "oauth2-proxy-rbac.fullname" . }}
+  {{ $global := merge .Values.authIngress.traefikSettings (dict "proxy" .Values.oauth2Proxy "fullname" $name) }}
   {{ mergeOverwrite .Values.authIngress (dict "traefikSettings" $global) | include "oauth2-proxy-rbac.traefikAuthIngressRouteSpec" | trim | nindent 2 }}
 {{- end }}

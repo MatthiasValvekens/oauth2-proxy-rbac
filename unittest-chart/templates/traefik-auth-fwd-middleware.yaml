@@ -1,0 +1,1 @@
+{{ include "oauth2-proxy-rbac.traefikAllAuthFwdMiddlewares" . }}

@@ -1,3 +1,4 @@
+fullnameOverride: "rbac-test"
 authIngress:
   tls:
     secretName: zz

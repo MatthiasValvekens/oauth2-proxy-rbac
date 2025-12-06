@@ -1,0 +1,40 @@
+suite: traefik RBAC Middleware
+templates:
+  - traefik-auth-fwd-middleware.yaml
+  - traefik-auth-header-middleware.yaml
+  - traefik-error-middleware.yaml
+
+tests:
+  - it: should render error middleware with defaults
+    template: traefik-error-middleware.yaml
+    asserts:
+      - isKind:
+          of: Middleware
+      - equal:
+          path: spec.errors.service.name
+          value: "oauth2-proxy"
+      - matchRegex:
+          path: metadata.name
+          pattern: "^rbac-test-[0-9a-f]+-errors"
+  - it: should render auth header middleware with defaults
+    template: traefik-auth-header-middleware.yaml
+    asserts:
+      - isKind:
+          of: Middleware
+      - equal:
+          path: spec.headers.forceSTSHeader
+          value: true
+      - matchRegex:
+          path: metadata.name
+          pattern: "^rbac-test-[0-9a-f]+-auth-headers"
+  - it: should render auth forwarding middleware with defaults
+    template: traefik-auth-fwd-middleware.yaml
+    asserts:
+      - isKind:
+          of: Middleware
+      - matchRegex:
+          path: metadata.name
+          pattern: "^rbac-test-[0-9a-f]+-auth-fwd-[0-9a-f]+"
+      - equal:
+          path: spec.forwardAuth.address
+          value: "http://oauth2-proxy/oauth2/auth?allowed_groups=Foo,Bar"

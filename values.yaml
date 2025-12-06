@@ -9,8 +9,10 @@ exports:
     authIngress:
       traefikSettings:
         # proxy: (injected)
-        middlewarePrefix: "oa2p"
+        middlewarePrefixOverride: ""
         routeOAuth2Prefix: true
+        authFwdMiddleware:
+          create: true
         errorMiddleware:
           enabled: true
           create: true
