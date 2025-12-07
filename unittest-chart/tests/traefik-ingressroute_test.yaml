@@ -74,6 +74,8 @@ tests:
               - prefix: /baz
                 allowedRoles:
                   - Quux
+              - prefix: /public
+                anonymous: true
     asserts:
       - equal:
           path: spec.routes[0].middlewares[0].name
@@ -93,8 +95,10 @@ tests:
       - equal:
           path: spec.routes[4].middlewares[1].name
           value: "rbac-test-b0452e1-auth-fwd-88cd562"
+      - notExists:
+          path: spec.routes[5].middlewares
       - equal:
-          path: spec.routes[5].middlewares[0].name
+          path: spec.routes[6].middlewares[0].name
           value: "rbac-test-b0452e1-auth-headers"
   - it: should render multiple routes with different backends
     set:

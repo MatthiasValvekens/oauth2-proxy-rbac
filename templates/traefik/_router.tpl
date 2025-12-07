@@ -23,6 +23,7 @@
   {{- end }}
   services:
     {{- toYaml .backends | nindent 4 }}
+  {{- if not .anonymous }}
   middlewares:
     {{- if .traefikSettings.errorMiddleware.enabled }}
     - name: {{ include "oauth2-proxy-rbac.traefikErrorsMiddlewareName" .traefikSettings }}
@@ -31,6 +32,7 @@
       {{- end }}
     {{- end }}
     - name: {{ include "oauth2-proxy-rbac.traefikAuthFwdMiddlewareName" . }}
+  {{- end }}
 {{- end }}
 
 {{- define "oauth2-proxy-rbac.traefikAuthenticatedRoutes" -}}
