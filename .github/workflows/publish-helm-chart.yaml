@@ -1,0 +1,35 @@
+name: Publish oauth2-proxy-rbac Helm chart
+on:
+  push:
+    tags: [ "v*" ]
+  workflow_dispatch: {}
+jobs:
+  publish-chart:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.7.0
+      - name: Install Helm
+        uses: azure/setup-helm@v4.3.1
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Package and push
+        id: package-push
+        run: |
+          helm package .
+          CHART_VERSION=$(grep 'version:' ./Chart.yaml | tail -n1 | awk '{ print $2 }')
+          FILENAME=oauth2-proxy-rbac-${CHART_VERSION}.tgz
+          DIGEST=$(helm push $FILENAME oci://ghcr.io/matthiasvalvekens 2>&1 | grep 'Digest:' | tail -n1 | awk '{ print $2 }')
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+      - name: Sign images using GHA OIDC identity
+        run: cosign sign --yes ghcr.io/matthiasvalvekens/oauth2-proxy-rbac@${{ steps.package-push.outputs.digest }}

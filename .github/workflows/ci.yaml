@@ -1,0 +1,25 @@
+name: Test
+on:
+  push: {}
+  workflow_dispatch: {}
+jobs:
+  helm-unittest:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Install Helm
+        uses: azure/setup-helm@v4.3.1
+        with:
+          version: v3.19.2
+      - name: Install helm-unittest
+        shell: bash
+        run: helm plugin install https://github.com/helm-unittest/helm-unittest.git
+      - name: Prepare test chart
+        working-directory: unittest-chart
+        run: helm dependency update
+      - name: Run tests
+        working-directory: unittest-chart
+        run: helm unittest .
