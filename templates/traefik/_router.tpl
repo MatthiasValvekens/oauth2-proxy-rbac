@@ -1,10 +1,10 @@
 
 {{- define "oauth2-proxy-rbac.traefikAuthRouteMatchHeaders" }}
-{{ $lst := list }}
-{{ range $hdr := .headers }}
-{{ $lst := append $lst (printf "Header(`%s`, `%s`)" $hdr.name $hdr.value) }}
-{{ end }}
-{{ join " && " $lst }}
+{{- $lst := list }}
+{{- range $hdr := .headers }}
+    {{- $lst = append $lst (printf "Header(`%s`, `%s`)" $hdr.name $hdr.value) }}
+{{- end }}
+{{- join " && " $lst }}
 {{- end }}
 
 {{- define "oauth2-proxy-rbac.traefikAuthRouteMatch" -}}

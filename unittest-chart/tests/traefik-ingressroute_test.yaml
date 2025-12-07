@@ -15,7 +15,7 @@ tests:
           count: 2
       - matchRegex:
           path: spec.routes[0].middlewares[0].name
-          pattern: "^rbac-test-[0-9a-f]+-errors"
+          pattern: "^rbac-test-b0452e1-errors"
   - it: should render an /oauth2/ route
     asserts:
       - equal:
@@ -29,7 +29,7 @@ tests:
           count: 1
       - matchRegex:
           path: spec.routes[1].middlewares[0].name
-          pattern: "^rbac-test-[0-9a-f]+-auth-headers"
+          pattern: "^rbac-test-b0452e1-auth-headers"
   - it: should not render an /oauth2/ route if disabled
     set:
       authIngress.traefikSettings.routeOAuth2Prefix: false
@@ -51,3 +51,123 @@ tests:
     asserts:
       - failedTemplate:
           errorPattern: "empty role list.*"
+  - it: should render multiple routes with different auth
+    set:
+      authIngress:
+        hosts:
+          - host: example.com
+            defaultAllowedRoles:
+              - Foo
+              - Bar
+            defaultBackends:
+              - name: backend
+                port: 80
+            routes:
+              - prefix: /foo
+              - prefix: /foo2
+              - prefix: /bar
+                allowedRoles:
+                  - Foo
+              - prefix: /baz
+                allowedRoles:
+                  - Foo
+              - prefix: /baz
+                allowedRoles:
+                  - Quux
+    asserts:
+      - equal:
+          path: spec.routes[0].middlewares[0].name
+          value: "rbac-test-b0452e1-errors"
+      - equal:
+          path: spec.routes[0].middlewares[1].name
+          value: "rbac-test-b0452e1-auth-fwd-52be2c8"
+      - equal:
+          path: spec.routes[1].middlewares[1].name
+          value: "rbac-test-b0452e1-auth-fwd-52be2c8"
+      - equal:
+          path: spec.routes[2].middlewares[1].name
+          value: "rbac-test-b0452e1-auth-fwd-1cbec73"
+      - equal:
+          path: spec.routes[3].middlewares[1].name
+          value: "rbac-test-b0452e1-auth-fwd-1cbec73"
+      - equal:
+          path: spec.routes[4].middlewares[1].name
+          value: "rbac-test-b0452e1-auth-fwd-88cd562"
+      - equal:
+          path: spec.routes[5].middlewares[0].name
+          value: "rbac-test-b0452e1-auth-headers"
+  - it: should render multiple routes with different backends
+    set:
+      authIngress:
+        hosts:
+          - host: example.com
+            defaultAllowedRoles:
+              - Foo
+              - Bar
+            defaultBackends:
+              - name: backend
+                port: 80
+            routes:
+              - prefix: /foo
+              - prefix: /foo2
+                backends:
+                  - name: other-backend
+                    port: 8080
+              - prefix: /foo3
+                backends:
+                  - name: foreign-backend
+                    port: 8080
+                    namespace: elsewhere
+    asserts:
+      - equal:
+          path: spec.routes[0].services
+          value:
+            - name: backend
+              port: 80
+      - equal:
+          path: spec.routes[1].services
+          value:
+            - name: other-backend
+              port: 8080
+      - equal:
+          path: spec.routes[2].services
+          value:
+            - name: foreign-backend
+              port: 8080
+              namespace: elsewhere
+  - it: should render multiple routes with different matching rules
+    set:
+      authIngress:
+        hosts:
+          - host: example.com
+            defaultAllowedRoles:
+              - Foo
+              - Bar
+            defaultBackends:
+              - name: backend
+                port: 80
+            routes:
+              - prefix: /foo
+              - prefix: /bar
+                method: GET
+              - prefix: /bar
+                method: POST
+              - prefix: /baz
+                headers:
+                  - name: "Content-Type"
+                    value: "application/json"
+                  - name: "X-Foo"
+                    value: "Bar"
+    asserts:
+      - equal:
+          path: spec.routes[0].match
+          value: "Host(`example.com`) && PathPrefix(`/foo`)"
+      - equal:
+          path: spec.routes[1].match
+          value: "Host(`example.com`) && PathPrefix(`/bar`) && Method(`GET`)"
+      - equal:
+          path: spec.routes[2].match
+          value: "Host(`example.com`) && PathPrefix(`/bar`) && Method(`POST`)"
+      - equal:
+          path: spec.routes[3].match
+          value: "Host(`example.com`) && PathPrefix(`/baz`) && Header(`Content-Type`, `application/json`) && Header(`X-Foo`, `Bar`)"
