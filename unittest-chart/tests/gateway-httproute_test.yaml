@@ -1,0 +1,287 @@
+suite: Gateway API HTTPRoute RBAC
+templates:
+  - gateway/httproute.yaml
+
+tests:
+  - it: should render a default host-wide route
+    set:
+      authIngress.gatewaySettings.parentRefs:
+        - name: default
+          namespace: default
+      authIngress.gatewaySettings.authFwdFilter.extensionRef.group: "example.io"
+      authIngress.gatewaySettings.authFwdFilter.extensionRef.kind: AuthFilter
+    asserts:
+      - isKind:
+          of: HTTPRoute
+      - equal:
+          path: apiVersion
+          value: "gateway.networking.k8s.io/v1"
+      - equal:
+          path: metadata.name
+          value: "rbac-test-example-com"
+      - equal:
+          path: spec.hostnames[0]
+          value: "example.com"
+      - equal:
+          path: spec.rules[0].matches[0].path.value
+          value: "/"
+      - equal:
+          path: spec.rules[0].filters[0].type
+          value: ExtensionRef
+      - matchRegex:
+          path: spec.rules[0].filters[0].extensionRef.name
+          pattern: "^rbac-test-[0-9a-f]+-auth-fwd-[0-9a-f]+"
+      - equal:
+          path: spec.rules[0].backendRefs[0].name
+          value: "backend"
+  - it: should render an /oauth2/ route with response header filter
+    set:
+      authIngress.gatewaySettings.parentRefs:
+        - name: default
+          namespace: default
+      authIngress.gatewaySettings.authFwdFilter.extensionRef.group: "example.io"
+      authIngress.gatewaySettings.authFwdFilter.extensionRef.kind: AuthFilter
+    asserts:
+      - equal:
+          path: spec.rules[1].matches[0].path.value
+          value: "/oauth2/"
+      - equal:
+          path: spec.rules[1].backendRefs[0].name
+          value: "oauth2-proxy"
+      - equal:
+          path: spec.rules[1].filters[0].type
+          value: ResponseHeaderModifier
+  - it: should not render an /oauth2/ route if disabled
+    set:
+      authIngress.gatewaySettings.routeOAuth2Prefix: false
+      authIngress.gatewaySettings.parentRefs:
+        - name: default
+          namespace: default
+      authIngress.gatewaySettings.authFwdFilter.extensionRef.group: "example.io"
+      authIngress.gatewaySettings.authFwdFilter.extensionRef.kind: AuthFilter
+    asserts:
+      - lengthEqual:
+          path: spec.rules
+          count: 1
+      - equal:
+          path: spec.rules[0].matches[0].path.value
+          value: "/"
+  - it: should fail if there are no roles on a route and no host-level default
+    set:
+      authIngress.gatewaySettings.parentRefs:
+        - name: default
+          namespace: default
+      authIngress.gatewaySettings.authFwdFilter.extensionRef.group: "example.io"
+      authIngress.gatewaySettings.authFwdFilter.extensionRef.kind: AuthFilter
+      authIngress:
+        hosts:
+          - host: example.com
+            defaultBackends:
+              - name: backend
+                port: 80
+    asserts:
+      - failedTemplate:
+          errorPattern: "empty role list.*"
+  - it: should render multiple routes with different auth
+    set:
+      authIngress.gatewaySettings.parentRefs:
+        - name: default
+          namespace: default
+      authIngress.gatewaySettings.authFwdFilter.extensionRef.group: "example.io"
+      authIngress.gatewaySettings.authFwdFilter.extensionRef.kind: AuthFilter
+      authIngress:
+        hosts:
+          - host: example.com
+            defaultAllowedRoles:
+              - Foo
+              - Bar
+            defaultBackends:
+              - name: backend
+                port: 80
+            routes:
+              - prefix: /foo
+              - prefix: /foo2
+              - prefix: /bar
+                allowedRoles:
+                  - Foo
+              - prefix: /baz
+                allowedRoles:
+                  - Foo
+              - prefix: /baz
+                allowedRoles:
+                  - Quux
+              - prefix: /public
+                anonymous: true
+    asserts:
+      - equal:
+          path: spec.rules[0].filters[0].extensionRef.name
+          value: "rbac-test-b0452e1-auth-fwd-52be2c8"
+      - equal:
+          path: spec.rules[1].filters[0].extensionRef.name
+          value: "rbac-test-b0452e1-auth-fwd-52be2c8"
+      - equal:
+          path: spec.rules[2].filters[0].extensionRef.name
+          value: "rbac-test-b0452e1-auth-fwd-1cbec73"
+      - equal:
+          path: spec.rules[3].filters[0].extensionRef.name
+          value: "rbac-test-b0452e1-auth-fwd-1cbec73"
+      - equal:
+          path: spec.rules[4].filters[0].extensionRef.name
+          value: "rbac-test-b0452e1-auth-fwd-88cd562"
+      - notExists:
+          path: spec.rules[5].filters
+      - equal:
+          path: spec.rules[6].filters[0].type
+          value: ResponseHeaderModifier
+  - it: should render multiple routes with different backends
+    set:
+      authIngress.gatewaySettings.parentRefs:
+        - name: default
+          namespace: default
+      authIngress.gatewaySettings.authFwdFilter.extensionRef.group: "example.io"
+      authIngress.gatewaySettings.authFwdFilter.extensionRef.kind: AuthFilter
+      authIngress:
+        hosts:
+          - host: example.com
+            defaultAllowedRoles:
+              - Foo
+              - Bar
+            defaultBackends:
+              - name: backend
+                port: 80
+            routes:
+              - prefix: /foo
+              - prefix: /foo2
+                backends:
+                  - name: other-backend
+                    port: 8080
+              - prefix: /foo3
+                backends:
+                  - name: foreign-backend
+                    port: 8080
+                    namespace: elsewhere
+    asserts:
+      - equal:
+          path: spec.rules[0].backendRefs
+          value:
+            - name: backend
+              port: 80
+      - equal:
+          path: spec.rules[1].backendRefs
+          value:
+            - name: other-backend
+              port: 8080
+      - equal:
+          path: spec.rules[2].backendRefs
+          value:
+            - name: foreign-backend
+              port: 8080
+              namespace: elsewhere
+  - it: should render multiple routes with different matching rules
+    set:
+      authIngress.gatewaySettings.parentRefs:
+        - name: default
+          namespace: default
+      authIngress.gatewaySettings.authFwdFilter.extensionRef.group: "example.io"
+      authIngress.gatewaySettings.authFwdFilter.extensionRef.kind: AuthFilter
+      authIngress:
+        hosts:
+          - host: example.com
+            defaultAllowedRoles:
+              - Foo
+              - Bar
+            defaultBackends:
+              - name: backend
+                port: 80
+            routes:
+              - prefix: /foo
+              - prefix: /bar
+                method: GET
+              - prefix: /bar
+                method: POST
+              - prefix: /baz
+                headers:
+                  - name: "Content-Type"
+                    value: "application/json"
+                  - name: "X-Foo"
+                    value: "Bar"
+    asserts:
+      - equal:
+          path: spec.rules[0].matches[0].path.value
+          value: "/foo"
+      - notExists:
+          path: spec.rules[0].matches[0].method
+      - equal:
+          path: spec.rules[1].matches[0].path.value
+          value: "/bar"
+      - equal:
+          path: spec.rules[1].matches[0].method
+          value: "GET"
+      - equal:
+          path: spec.rules[2].matches[0].method
+          value: "POST"
+      - equal:
+          path: spec.rules[3].matches[0].headers
+          value:
+            - name: "Content-Type"
+              value: "application/json"
+            - name: "X-Foo"
+              value: "Bar"
+  - it: should render one HTTPRoute per host
+    set:
+      authIngress.gatewaySettings.parentRefs:
+        - name: default
+          namespace: default
+      authIngress.gatewaySettings.authFwdFilter.extensionRef.group: "example.io"
+      authIngress.gatewaySettings.authFwdFilter.extensionRef.kind: AuthFilter
+      authIngress:
+        hosts:
+          - host: example.com
+            defaultAllowedRoles:
+              - Foo
+            defaultBackends:
+              - name: backend
+                port: 80
+          - host: other.example.com
+            defaultAllowedRoles:
+              - Bar
+            defaultBackends:
+              - name: other-backend
+                port: 8080
+    asserts:
+      - hasDocuments:
+          count: 2
+      - equal:
+          path: metadata.name
+          value: "rbac-test-example-com"
+        documentIndex: 0
+      - equal:
+          path: spec.hostnames[0]
+          value: "example.com"
+        documentIndex: 0
+      - equal:
+          path: metadata.name
+          value: "rbac-test-other-example-com"
+        documentIndex: 1
+      - equal:
+          path: spec.hostnames[0]
+          value: "other.example.com"
+        documentIndex: 1
+  - it: should attach to the specified gateway parent refs
+    set:
+      authIngress.gatewaySettings.parentRefs:
+        - name: prod-gateway
+          namespace: gateway-infra
+          sectionName: https
+      authIngress.gatewaySettings.authFwdFilter.extensionRef.group: "example.io"
+      authIngress.gatewaySettings.authFwdFilter.extensionRef.kind: AuthFilter
+    asserts:
+      - equal:
+          path: spec.parentRefs[0].name
+          value: "prod-gateway"
+      - equal:
+          path: spec.parentRefs[0].namespace
+          value: "gateway-infra"
+      - equal:
+          path: spec.parentRefs[0].sectionName
+          value: "https"

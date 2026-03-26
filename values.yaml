@@ -5,6 +5,27 @@ exports:
       proxyPort: 80
       proxyScheme: "http"
       proxyNamespace: ""
+  gatewayDefaults:
+    authIngress:
+      gatewaySettings:
+        # proxy: (injected)
+        middlewarePrefixOverride: ""
+        routeOAuth2Prefix: true
+        # parentRefs must be provided by the consuming chart
+        parentRefs: []
+        authFwdFilter:
+          # group and kind must be set to the vendor-specific ExtensionRef target
+          extensionRef:
+            group: ""
+            kind: ""
+        authHeaderFilter:
+          enabled: true
+          # Actual HTTP response header names and values
+          headers:
+            Strict-Transport-Security: "max-age=315360000; includeSubDomains; preload"
+            X-Content-Type-Options: "nosniff"
+            X-Frame-Options: "DENY"
+            X-XSS-Protection: "1; mode=block"
   traefikDefaults:
     authIngress:
       traefikSettings:
