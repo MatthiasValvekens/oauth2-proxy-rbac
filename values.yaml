@@ -15,9 +15,10 @@ exports:
         parentRefs: []
         authFwdFilter:
           # group and kind must be set to the vendor-specific ExtensionRef target
+          # (defaults to Traefik)
           extensionRef:
-            group: ""
-            kind: ""
+            group: traefik.io/v1alpha1
+            kind: Middleware
         authHeaderFilter:
           enabled: true
           # Actual HTTP response header names and values
