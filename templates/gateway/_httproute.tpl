@@ -23,14 +23,15 @@ Input: dict with keys: gatewaySettings (proxy, middlewarePrefixOverride, fullnam
 {{/*
 Generate a single HTTPRouteMatch object.
 Input: dict with keys:
-  - prefix: path prefix string (optional, defaults to /)
+  - prefix: path prefix string (required)
   - method: HTTP method string (optional)
   - headers: list of {name, value} dicts (optional)
 */}}
 {{- define "oauth2-proxy-rbac.gatewayRouteMatch" -}}
+{{- if not .prefix }}{{ fail "route prefix is required" }}{{ end -}}
 - path:
     type: PathPrefix
-    value: {{ default "/" .prefix | quote }}
+    value: {{ .prefix | quote }}
   {{- if .method }}
   method: {{ .method | upper | quote }}
   {{- end }}
@@ -57,6 +58,12 @@ Input: route dict merged with host-level defaults, plus gatewaySettings
         group: {{ .gatewaySettings.authFwdFilter.extensionRef.group | quote }}
         kind: {{ .gatewaySettings.authFwdFilter.extensionRef.kind | quote }}
         name: {{ include "oauth2-proxy-rbac.gatewayAuthFwdFilterName" . | trim | quote }}
+    {{- with .extraFilters }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- else if .extraFilters }}
+  filters:
+    {{- toYaml .extraFilters | nindent 4 }}
   {{- end }}
   backendRefs:
     {{- range .backends }}
@@ -80,7 +87,8 @@ Input: host dict merged with global authIngress, including gatewaySettings
     {{- include "oauth2-proxy-rbac.gatewayAuthenticatedRouteRule" $augRoute }}
   {{- end }}
 {{- else }}
-  {{- include "oauth2-proxy-rbac.gatewayAuthenticatedRouteRule" $global }}
+  {{- $catchAll := merge (dict "prefix" "/") $global }}
+  {{- include "oauth2-proxy-rbac.gatewayAuthenticatedRouteRule" $catchAll }}
 {{- end }}
 {{- if .gatewaySettings.routeOAuth2Prefix }}
 - matches:

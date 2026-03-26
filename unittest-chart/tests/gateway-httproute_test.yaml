@@ -285,3 +285,71 @@ tests:
       - equal:
           path: spec.parentRefs[0].sectionName
           value: "https"
+  - it: should fail if a route has no prefix
+    set:
+      authIngress.gatewaySettings.parentRefs:
+        - name: default
+          namespace: default
+      authIngress.gatewaySettings.authFwdFilter.extensionRef.group: "example.io"
+      authIngress.gatewaySettings.authFwdFilter.extensionRef.kind: AuthFilter
+      authIngress:
+        hosts:
+          - host: example.com
+            defaultAllowedRoles:
+              - Foo
+            defaultBackends:
+              - name: backend
+                port: 80
+            routes:
+              - allowedRoles:
+                  - Foo
+    asserts:
+      - failedTemplate:
+          errorPattern: "route prefix is required"
+  - it: should append extraFilters to authenticated route filters
+    set:
+      authIngress.gatewaySettings.parentRefs:
+        - name: default
+          namespace: default
+      authIngress.gatewaySettings.authFwdFilter.extensionRef.group: "example.io"
+      authIngress.gatewaySettings.authFwdFilter.extensionRef.kind: AuthFilter
+      authIngress:
+        hosts:
+          - host: example.com
+            defaultAllowedRoles:
+              - Foo
+            defaultBackends:
+              - name: backend
+                port: 80
+            routes:
+              - prefix: /secured
+                extraFilters:
+                  - type: RequestHeaderModifier
+                    requestHeaderModifier:
+                      add:
+                        - name: X-Custom-Header
+                          value: custom-value
+              - prefix: /public
+                anonymous: true
+                extraFilters:
+                  - type: RequestHeaderModifier
+                    requestHeaderModifier:
+                      add:
+                        - name: X-Public
+                          value: "true"
+    asserts:
+      - equal:
+          path: spec.rules[0].filters[0].type
+          value: ExtensionRef
+      - equal:
+          path: spec.rules[0].filters[1].type
+          value: RequestHeaderModifier
+      - equal:
+          path: spec.rules[0].filters[1].requestHeaderModifier.add[0].name
+          value: X-Custom-Header
+      - equal:
+          path: spec.rules[1].filters[0].type
+          value: RequestHeaderModifier
+      - equal:
+          path: spec.rules[1].filters[0].requestHeaderModifier.add[0].name
+          value: X-Public
