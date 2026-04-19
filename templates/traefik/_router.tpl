@@ -78,7 +78,7 @@
 entryPoints:
   - websecure
 tls:
-  {{- toYaml $global.tls | nindent 2 }}
+  secretName: {{ $global.tls.secretName }}
 routes:
   {{- range $host := $global.hosts }}
       {{- merge $host $global | include "oauth2-proxy-rbac.traefikAuthenticatedRoutes" | nindent 2 }}
